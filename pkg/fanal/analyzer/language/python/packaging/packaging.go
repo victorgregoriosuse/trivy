@@ -167,9 +167,7 @@ func (a packagingAnalyzer) Required(filePath string, _ os.FileInfo) bool {
 }
 
 func isEggFile(filePath string) bool {
-	return lo.SomeBy(eggFiles, func(fileName string) bool {
-		return strings.HasSuffix(filePath, fileName)
-	})
+	return strings.Contains(filePath, ".egg-info")
 }
 
 func (a packagingAnalyzer) Type() analyzer.Type {
