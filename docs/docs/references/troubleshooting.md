@@ -10,7 +10,7 @@
     analyze error: timeout: context deadline exceeded
     ```
 
-Your scan may time out. Java takes a particularly long time to scan. Try increasing the value of the ---timeout option such as `--timeout 15m`.
+Your scan may time out. Java takes a particularly long time to scan. Try increasing the value of the `--timeout` option such as `--timeout 15m`.
 
 ### Unable to initialize an image scanner
 
@@ -78,15 +78,27 @@ Common mistakes include the following, depending on where you are pulling images
 $ TRIVY_INSECURE=true trivy image [YOUR_IMAGE]
 ```
 
-Alternatively, you can specify the location of your certificate using `SSL_CERT_FILE` or `SSL_CERT_DIR` environment variables.
+If you need to trust a custom CA certificate, you can provide a PEM-encoded bundle.
 
-```
-$ SSL_CERT_FILE=/path/to/cert trivy image [YOUR_IMAGE]
-```
+=== "Unix (except macOS)"
 
-```
-$ SSL_CERT_DIR=/path/to/certs trivy image [YOUR_IMAGE]
-```
+    You can specify the location of your certificate using the `SSL_CERT_FILE` or `SSL_CERT_DIR` environment variables.
+
+    ```bash
+    $ SSL_CERT_FILE=/path/to/ca.pem trivy image [YOUR_IMAGE]
+    ```
+
+    ```bash
+    $ SSL_CERT_DIR=/path/to/certs trivy image [YOUR_IMAGE]
+    ```
+
+=== "All systems"
+
+    Use the `--cacert` flag to point Trivy to a PEM-encoded CA certificate file, regardless of the operating system.
+
+    ```bash
+    $ trivy image --cacert /path/to/ca.pem [YOUR_IMAGE]
+    ```
 
 ### GitHub Rate limiting
 Trivy uses GitHub API for [VEX repositories](../supply-chain/vex/repo.md).
@@ -125,50 +137,61 @@ $ trivy image --download-java-db-only
 $ trivy image [YOUR_JAVA_IMAGE]
 ```
 
-### Database and cache lock errors
+### Cache lock errors
 
 !!! error
     ```
     cache may be in use by another process
     ```
 
-!!! error
-    ```
-    vulnerability database may be in use by another process
-    ```
+Trivy's vulnerability database is opened in read-only mode, so it does not cause lock issues. Lock errors occur only when using filesystem cache for scan cache storage.
 
-By default, Trivy uses BoltDB for its vulnerability database and cache storage. BoltDB creates file locks to prevent data corruption, which means only one process can access the same database file at a time.
-
-As stated in the BoltDB documentation:
+Filesystem cache uses BoltDB internally, which creates file locks to prevent data corruption. As stated in the BoltDB documentation:
 
 > Please note that Bolt obtains a file lock on the data file so multiple processes cannot open the same database at the same time. Opening an already open Bolt database will cause it to hang until the other process closes it.
 
 Reference: [BoltDB README](https://github.com/boltdb/bolt#opening-a-database)
 
+If you're using memory cache (default for some commands like `fs`, `rootfs`, `config`, and `sbom`) or external cache (Redis), you will not encounter lock errors. Lock issues only occur when using filesystem cache with multiple concurrent processes.
+See [Cache Backend](../configuration/cache.md#scan-cache-backend) for more details.
+
 These errors occur when:
 
-- Multiple Trivy processes try to use the same cache directory simultaneously
+- Multiple Trivy processes try to use the same filesystem cache directory simultaneously
 - A previous Trivy process did not shut down cleanly
-- Trivy server is running and holding locks on the database and cache
-
-#### Important Note
-
-Running multiple Trivy processes on the same machine is **not recommended**. Using the same cache directory for multiple processes does not improve performance and can cause unexpected errors due to BoltDB's locking mechanism.
+- Trivy server is running with filesystem cache and holding a lock on the cache
 
 #### Solutions
 
-**Solution 1: Terminate conflicting processes** (Recommended)
+**Solution 1: Use memory cache or Redis cache** (Recommended)
 
-Check for running Trivy processes and terminate them:
+Memory cache is the default for some commands (e.g., `fs`, `rootfs`, `config`, `sbom`). For other commands like image scanning, you can use `--cache-backend memory` to enable concurrent execution:
+
+```bash
+$ trivy image --cache-backend memory debian:11 &
+$ trivy image --cache-backend memory debian:12 &
+```
+
+Note that memory cache does not persist scan results, so subsequent scans will take longer as layers need to be scanned again each time.
+
+For server mode or persistent cache with concurrent access, use Redis cache:
+
+```bash
+$ trivy server --cache-backend redis://localhost:6379
+```
+
+**Solution 2: Terminate conflicting processes**
+
+If you need to use filesystem cache, check for running Trivy processes and terminate them:
 
 ```bash
 $ ps aux | grep trivy
 $ kill [process_id]
 ```
 
-**Solution 2: Use different cache directories** (If multiple processes are absolutely necessary)
+**Solution 3: Use different cache directories**
 
-If you must run multiple Trivy processes on the same machine, specify different cache directories for each process:
+If you must run multiple Trivy processes with filesystem cache, specify different cache directories for each process:
 
 ```bash
 $ trivy image --cache-dir /tmp/trivy-cache-1 debian:11 &

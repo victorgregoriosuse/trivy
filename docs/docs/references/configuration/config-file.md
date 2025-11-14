@@ -9,6 +9,9 @@ These samples contain default values for flags.
 ## Global options
 
 ```yaml
+# Same as '--cacert'
+cacert: ""
+
 cache:
   # Same as '--cache-dir'
   dir: "/path/to/cache"
@@ -494,6 +497,9 @@ rego:
 
   # Same as '--config-data'
   data: []
+
+  # Same as '--rego-error-limit'
+  error-limit: 10
 
   # Same as '--include-deprecated-checks'
   include-deprecated-checks: false

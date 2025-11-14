@@ -58,6 +58,7 @@ trivy config [flags] DIR
       --redis-key string                  redis key file location, if using redis as cache backend
       --redis-tls                         enable redis TLS with public certificates, if using redis as cache backend
       --registry-token string             registry token
+      --rego-error-limit int              maximum number of compile errors allowed during Rego policy evaluation (default 10)
       --render-cause strings              specify configuration types for which the rendered causes will be shown in the table report (allowed values: terraform)
       --report string                     specify a compliance report format for the output (allowed values: all,summary) (default "all")
   -s, --severity strings                  severities of security issues to be displayed
@@ -83,6 +84,7 @@ trivy config [flags] DIR
 ### Options inherited from parent commands
 
 ```
+      --cacert string             Path to PEM-encoded CA certificate file
       --cache-dir string          cache directory (default "/path/to/cache")
   -c, --config string             config path (default "trivy.yaml")
   -d, --debug                     debug mode
