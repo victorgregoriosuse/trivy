@@ -163,7 +163,11 @@ func (a packagingAnalyzer) parse(ctx context.Context, filePath string, r xio.Rea
 }
 
 func (a packagingAnalyzer) Required(filePath string, _ os.FileInfo) bool {
-	return strings.Contains(filePath, ".dist-info") || isEggFile(filePath)
+	required := strings.Contains(filePath, ".dist-info") || isEggFile(filePath)
+	if required {
+		a.logger.Debug("packaging: required file", log.FilePath(filePath))
+	}
+	return required
 }
 
 func isEggFile(filePath string) bool {

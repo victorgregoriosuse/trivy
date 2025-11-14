@@ -34,8 +34,6 @@ var pythonExecNames = []string{
 	"python3",
 	"python",
 	"python2",
-	"python3.11",
-	"python3.13",
 	"python.exe",
 }
 
@@ -61,9 +59,8 @@ func (a pipLibraryAnalyzer) PostAnalyze(ctx context.Context, input analyzer.Post
 		a.logger.Warn("Unable to find python `site-packages` directory. License detection is skipped.", log.Err(err))
 	}
 
-	required := func(_ string, d fs.DirEntry) bool {
-		// Parse all required files: `conan.lock` (from a.Required func) + input.FilePatterns.Match()
-		return true
+	required := func(path string, _ fs.DirEntry) bool {
+		return filepath.Base(path) == types.PipRequirements || input.FilePatterns.Match(path)
 	}
 
 	useMinVersion := a.detectionPriority == types.PriorityComprehensive
