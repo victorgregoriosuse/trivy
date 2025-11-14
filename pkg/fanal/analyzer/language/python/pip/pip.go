@@ -96,9 +96,15 @@ func (a pipLibraryAnalyzer) PostAnalyze(ctx context.Context, input analyzer.Post
 	}, nil
 }
 
-func (a pipLibraryAnalyzer) Required(filePath string, _ os.FileInfo) bool {
-	fileName := filepath.Base(filePath)
-	return fileName == types.PipRequirements
+// Required does a case-insensitive check for python executables
+func (a pipAnalyzer) Required(filePath string, _ os.FileInfo) bool {
+	log.Logger.Debugf("python-pip: checking file: %s", filePath)
+	for _, execName := range pythonExecNames {
+		if strings.EqualFold(filepath.Base(filePath), execName) {
+			return true
+		}
+	}
+	return false
 }
 
 func (a pipLibraryAnalyzer) Type() analyzer.Type {
