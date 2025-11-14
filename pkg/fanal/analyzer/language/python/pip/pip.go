@@ -34,6 +34,8 @@ var pythonExecNames = []string{
 	"python3",
 	"python",
 	"python2",
+	"python3.11",
+	"python3.13",
 	"python.exe",
 }
 
